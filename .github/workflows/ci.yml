@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: sqlite:///./ci.db
+      SECRET_KEY: ci-only-secret
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      ENVIRONMENT: test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Compile application
+        run: python -m compileall -q app
+
+      - name: Smoke-test application import
+        run: python -c "from app.main import app; assert '/' in app.openapi()['paths']"
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: ec2-production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Set up SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          : "${EC2_SSH_KEY:?Set the EC2_SSH_KEY repository secret}"
+          : "${EC2_KNOWN_HOSTS:?Set the EC2_KNOWN_HOSTS repository secret}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_deploy_key
+          chmod 600 ~/.ssh/ec2_deploy_key
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Pull latest code and restart service on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
+          EC2_SERVICE_NAME: ${{ secrets.EC2_SERVICE_NAME }}
+        run: |
+          : "${EC2_HOST:?Set the EC2_HOST repository secret}"
+          : "${EC2_USER:?Set the EC2_USER repository secret}"
+          : "${EC2_APP_DIR:?Set the EC2_APP_DIR repository secret}"
+          : "${EC2_SERVICE_NAME:?Set the EC2_SERVICE_NAME repository secret}"
+          ssh -i ~/.ssh/ec2_deploy_key \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$EC2_USER@$EC2_HOST" \
+            bash -s -- "$EC2_APP_DIR" "$EC2_SERVICE_NAME" <<'REMOTE'
+          set -euo pipefail
+          app_dir=$1
+          service_name=$2
+
+          cd "$app_dir"
+          git pull --ff-only origin master
+
+          if [ ! -x .venv/bin/python ]; then
+            python3 -m venv .venv
+          fi
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt
+
+          sudo -n systemctl restart "$service_name"
+          sudo -n systemctl is-active --quiet "$service_name"
+          REMOTE
