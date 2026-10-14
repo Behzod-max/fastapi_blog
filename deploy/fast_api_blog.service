@@ -1,0 +1,17 @@
+[Unit]
+Description=FastAPI Blog
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/fast_api_blog
+EnvironmentFile=/var/www/fast_api_blog/.env
+Environment=PORT=8000
+Environment=WEB_CONCURRENCY=4
+ExecStart=/bin/bash /var/www/fast_api_blog/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

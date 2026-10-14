@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from .. import models, schemas, oauth2
 from ..database import get_db
+from ..limiter import limiter
 
 router = APIRouter(
     prefix="/posts",
@@ -36,7 +37,9 @@ def create_post(
     "/",
     response_model=List[schemas.PostResponse]
 )
+@limiter.limit("10/minute")
 def get_all_posts(
+    request: Request,
     db: Session = Depends(get_db),
     limit: int = 10,
     skip: int = 0,

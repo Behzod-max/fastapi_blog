@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +8,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int
     allowed_origins: str = "http://localhost:3000,http://localhost:5173"
     environment: str = "development"
-    debug: bool = True
+    debug: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -19,12 +17,12 @@ class Settings(BaseSettings):
     )
 
     @property
-    def origins_list(self) -> List[str]:
+    def origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
 
     @property
     def is_production(self) -> bool:
-        return self.environment.lower() == "production"
+        return self.environment.strip().lower() == "production"
 
 
 settings = Settings()

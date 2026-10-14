@@ -1,5 +1,10 @@
-﻿.venv/
 __pycache__/
 *.pyc
+.venv/
+venv/
 db.sqlite3
 .env
+ec2_known_hosts.txt
+.pytest_cache/
+.ruff_cache/
+*.log

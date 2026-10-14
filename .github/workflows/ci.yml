@@ -62,12 +62,12 @@ jobs:
           printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Pull latest code and restart service on EC2
+      - name: Deploy on EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
-          EC2_SERVICE_NAME: ${{ secrets.EC2_SERVICE_NAME }}
+          EC2_USER: ubuntu
+          EC2_APP_DIR: /var/www/fast_api_blog
+          EC2_SERVICE_NAME: fast_api_blog.service
         run: |
           : "${EC2_HOST:?Set the EC2_HOST repository secret}"
           : "${EC2_USER:?Set the EC2_USER repository secret}"
@@ -77,20 +77,13 @@ jobs:
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$EC2_USER@$EC2_HOST" \
-            bash -s -- "$EC2_APP_DIR" "$EC2_SERVICE_NAME" <<'REMOTE'
+            bash -s -- "$EC2_APP_DIR" "$EC2_SERVICE_NAME" master <<'REMOTE'
           set -euo pipefail
           app_dir=$1
           service_name=$2
+          deploy_branch=$3
 
           cd "$app_dir"
-          git pull --ff-only origin master
-
-          if [ ! -x .venv/bin/python ]; then
-            python3 -m venv .venv
-          fi
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -r requirements.txt
-
-          sudo -n systemctl restart "$service_name"
+          DEPLOY_BRANCH="$deploy_branch" SERVICE_NAME="$service_name" bash ./deploy.sh
           sudo -n systemctl is-active --quiet "$service_name"
           REMOTE
