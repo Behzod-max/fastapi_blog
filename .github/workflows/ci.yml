@@ -93,5 +93,12 @@ jobs:
           git pull --ff-only origin "$deploy_branch"
           DEPLOY_BRANCH="$deploy_branch" SERVICE_NAME="$service_name" VENV_DIR="$venv_dir" bash ./deploy.sh
           sudo -n systemctl is-active --quiet "$service_name"
-          curl --fail --silent --show-error http://127.0.0.1:8001/health
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8001/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          sudo -n systemctl --no-pager --full status "$service_name"
+          exit 1
           REMOTE
