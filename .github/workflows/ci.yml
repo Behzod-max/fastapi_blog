@@ -37,6 +37,9 @@ jobs:
       - name: Compile application
         run: python -m compileall -q app
 
+      - name: Validate Alembic migration graph
+        run: python -m alembic history
+
       - name: Smoke-test application import
         run: python -c "from app.main import app; assert '/' in app.openapi()['paths']"
 
@@ -66,24 +69,28 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ubuntu
-          EC2_APP_DIR: /var/www/fast_api_blog
-          EC2_SERVICE_NAME: fast_api_blog.service
+          EC2_APP_DIR: /var/www/fastapi_blog
+          EC2_SERVICE_NAME: fastapi_blog.service
+          EC2_VENV_DIR: venv
         run: |
           : "${EC2_HOST:?Set the EC2_HOST repository secret}"
           : "${EC2_USER:?Set the EC2_USER repository secret}"
           : "${EC2_APP_DIR:?Set the EC2_APP_DIR repository secret}"
           : "${EC2_SERVICE_NAME:?Set the EC2_SERVICE_NAME repository secret}"
+          : "${EC2_VENV_DIR:?Set the EC2_VENV_DIR value}"
           ssh -i ~/.ssh/ec2_deploy_key \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "$EC2_USER@$EC2_HOST" \
-            bash -s -- "$EC2_APP_DIR" "$EC2_SERVICE_NAME" master <<'REMOTE'
+            bash -s -- "$EC2_APP_DIR" "$EC2_SERVICE_NAME" master "$EC2_VENV_DIR" <<'REMOTE'
           set -euo pipefail
           app_dir=$1
           service_name=$2
           deploy_branch=$3
+          venv_dir=$4
 
           cd "$app_dir"
-          DEPLOY_BRANCH="$deploy_branch" SERVICE_NAME="$service_name" bash ./deploy.sh
+          DEPLOY_BRANCH="$deploy_branch" SERVICE_NAME="$service_name" VENV_DIR="$venv_dir" bash ./deploy.sh
           sudo -n systemctl is-active --quiet "$service_name"
+          curl --fail --silent --show-error http://127.0.0.1:8001/health
           REMOTE

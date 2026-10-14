@@ -49,7 +49,7 @@ Interactive API docs are disabled when `ENVIRONMENT=production`. `start.sh`
 uses the project's `.venv` by default; set `VENV_DIR` if your virtual
 environment uses another directory.
 
-For an EC2/systemd setup, adjust the paths and service user in
+For a new EC2/systemd setup, adjust the paths and service user in
 [`deploy/fast_api_blog.service`](./deploy/fast_api_blog.service), copy it to
 `/etc/systemd/system/fast_api_blog.service`, then run:
 
@@ -67,11 +67,14 @@ trusted server host-key line), `EC2_USER`, `EC2_APP_DIR`, and
 `WorkingDirectory`, `EnvironmentFile`, and `ExecStart` paths match it.
 
 After CI succeeds, the workflow runs `deploy.sh` on the server as `ubuntu` in
-`/var/www/fast_api_blog`, then verifies that `fast_api_blog.service` is active.
-The script pulls `master`, creates `.venv` if needed, installs production
-dependencies, applies existing Alembic migrations with `alembic upgrade head`,
-and restarts the systemd service. The EC2 deploy user needs Git access to the
-repository and non-interactive `sudo` permission for restarting that service.
+`/var/www/fastapi_blog`, then verifies that `fastapi_blog.service` is active and
+that its health endpoint responds on port 8001. The script pulls `master`,
+creates `venv` if needed, installs production dependencies, applies existing
+Alembic migrations with `alembic upgrade head`, and restarts the systemd
+service. A migration failure stops the deployment before the service is
+restarted. The EC2 deploy user needs Git access to the repository and
+non-interactive `sudo` permission for restarting that service.
+
 Configure these repository Actions secrets: `EC2_HOST`, `EC2_SSH_KEY` (private
 key contents), and `EC2_KNOWN_HOSTS` (the verified SSH host-key line). To
 obtain the host key securely, read the EC2 instance's SSH host public key
