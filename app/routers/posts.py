@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from .. import models, schemas, oauth2
 from ..database import get_db
-from ..limiter import limiter
+from ..main import limiter
 
 router = APIRouter(
     prefix="/posts",
