@@ -20,7 +20,7 @@ logger = logging.getLogger("app.requests")
 app = FastAPI(
     title="Blog API",
     description="FastAPI + PostgreSQL + JWT + Alembic + CORS",
-    version="Samandarov 1.0.0",
+    version="saaa 1.0.0",
     debug=settings.debug and not settings.is_production,
     docs_url=None if settings.is_production else "/docs",
     redoc_url=None if settings.is_production else "/redoc",
@@ -70,7 +70,7 @@ async def log_requests(request: Request, call_next):
 @app.get("/", tags=["Health"])
 def root():
     return {
-        "xabar": "Blog API",
+        "message": "Blog API",
         "version": app.version,
         "environment": settings.environment,
     }
