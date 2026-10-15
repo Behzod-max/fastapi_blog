@@ -11,6 +11,7 @@ ecdsa==0.19.2
 email-validator==2.3.0
 fastapi==0.141.1
 h11==0.16.0
+httpx==0.28.1
 httptools==0.8.0
 idna==3.20
 Mako==1.4.3
@@ -24,6 +25,8 @@ pycparser==3.0
 pydantic==2.13.5
 pydantic-settings==2.13.1
 pydantic_core==2.46.5
+pytest==9.0.2
+pytest-cov==7.0.0
 python-dotenv==1.2.3
 python-jose==3.5.0
 python-multipart==0.0.32

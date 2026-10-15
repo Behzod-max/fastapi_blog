@@ -25,6 +25,17 @@ The interactive API docs are at `/docs` and `/redoc` in development. Existing
 routes remain available (for example, `/posts/` and `/login`); versioned aliases
 are also available under `/api/v1` (for example, `/api/v1/posts/`).
 
+## Tests
+
+Run the integration test suite with coverage from the project root:
+
+```powershell
+pytest
+```
+
+Tests use an isolated in-memory SQLite database. The `pytest` command reports
+coverage for `app`; use `pytest tests/test_posts.py` to run one test module.
+
 `GET /health` runs `SELECT 1` against the configured database and returns HTTP
 503 if the database probe fails. The posts list endpoint is limited to 10
 requests per minute per client IP. Its default in-memory rate-limit storage is

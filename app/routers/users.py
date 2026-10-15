@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
-from ..utils.hashing import hash_password
+from ..utils.hashing import hash_password, verify_password
+from .. import oauth2
 
 router = APIRouter(
     prefix="/users",
@@ -36,6 +37,34 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return new_user
+
+
+@router.get(
+    "/me",
+    response_model=schemas.UserResponse,
+)
+def get_current_user(
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
+    return current_user
+
+
+@router.put("/me/password")
+def change_password(
+    password_update: schemas.UserPasswordUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
+    if not verify_password(password_update.old_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Eski parol noto'g'ri",
+        )
+
+    current_user.password = hash_password(password_update.new_password)
+    db.commit()
+
+    return {"message": "Parol muvaffaqiyatli o'zgartirildi"}
 
 
 # ─── GET USER ─────────────────────────────────

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # ─── USER SCHEMAS ─────────────────────────────
@@ -23,10 +23,15 @@ class UserResponse(BaseModel):
     }
 
 
+class UserPasswordUpdate(BaseModel):
+    old_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=1)
+
+
 # ─── POST SCHEMAS ─────────────────────────────
 
 class PostBase(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=255)
     body: str
     published: bool = True
     rating: Optional[int] = None

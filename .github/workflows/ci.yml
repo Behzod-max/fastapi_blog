@@ -37,6 +37,9 @@ jobs:
       - name: Compile application
         run: python -m compileall -q app
 
+      - name: Run tests with coverage
+        run: pytest --cov-report=xml
+
       - name: Validate Alembic migration graph
         run: python -m alembic history
 
