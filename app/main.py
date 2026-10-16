@@ -1,3 +1,4 @@
+
 import logging
 from time import perf_counter
 
@@ -12,15 +13,14 @@ from sqlalchemy.orm import Session
 from . import database
 from .config import settings
 from .limiter import limiter
-from .routers import auth, posts, users
-
+from .routers import auth, posts, users, websocket
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app.requests")
 
 app = FastAPI(
     title="Blog API",
     description="FastAPI + PostgreSQL + JWT + Alembic + CORS",
-    version="Version  1.0.0",
+    version="1.0.0",
     debug=settings.debug and not settings.is_production,
     docs_url=None if settings.is_production else "/docs",
     redoc_url=None if settings.is_production else "/redoc",
@@ -36,12 +36,17 @@ app.add_middleware(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,
+)
 
-# Keep the original routes available while exposing versioned aliases.
+# Asosiy API routerlari
 app.include_router(posts.router)
 app.include_router(users.router)
 app.include_router(auth.router)
+app.include_router(websocket.router)
+# API v1 manzillari
 app.include_router(posts.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
@@ -50,13 +55,19 @@ app.include_router(auth.router, prefix="/api/v1")
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     started_at = perf_counter()
+
     try:
         response = await call_next(request)
     except Exception:
-        logger.exception("Request failed: %s %s", request.method, request.url.path)
+        logger.exception(
+            "Request failed: %s %s",
+            request.method,
+            request.url.path,
+        )
         raise
 
     duration_ms = (perf_counter() - started_at) * 1000
+
     logger.info(
         "%s %s %s %.2fms",
         request.method,
@@ -64,6 +75,7 @@ async def log_requests(request: Request, call_next):
         response.status_code,
         duration_ms,
     )
+
     return response
 
 
