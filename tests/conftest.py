@@ -7,6 +7,9 @@ from sqlalchemy.pool import StaticPool
 from app import models
 from app.database import Base, get_db
 from app.main import app
+from app.routers import posts as posts_router
+from app.routers import websocket as websocket_router
+from app.routers import users as users_router
 
 
 engine = create_engine(
@@ -33,7 +36,14 @@ def db():
 
 
 @pytest.fixture
-def client(db):
+def client(db, monkeypatch):
+    async def skip_email(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(users_router, "send_welcome_email", skip_email)
+    monkeypatch.setattr(posts_router, "send_post_notification", skip_email)
+    monkeypatch.setattr(websocket_router, "SessionLocal", TestingSessionLocal)
+
     def override_get_db():
         yield db
 

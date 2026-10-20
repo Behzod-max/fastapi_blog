@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.config import settings
 from app.database import Base
-from app.models import Post, User   # Barcha modellarni import!
+from app.models import Message, Post, User   # Barcha modellarni import!
 # ──────────────────────────────────────────────
 
 config = context.config

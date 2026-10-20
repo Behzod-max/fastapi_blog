@@ -42,6 +42,46 @@ requests per minute per client IP. Its default in-memory rate-limit storage is
 per worker; use shared storage such as Redis if limits must be consistent across
 multiple production workers or instances.
 
+## Email and image uploads
+
+User registration and post creation queue email notifications as FastAPI
+background tasks. To send them, set `MAIL_USERNAME`, `MAIL_PASSWORD`,
+`MAIL_FROM`, `MAIL_PORT`, and `MAIL_SERVER` in `.env`; without credentials,
+notifications are skipped and a warning is logged. For Gmail, use an App
+Password rather than your account password.
+
+Authenticated users can upload one image to `POST /upload/image` or up to five
+images to `POST /upload/images` (also available under `/api/v1`). JPEG, PNG,
+GIF, and WEBP images are accepted up to 5 MB each. Files are stored in the
+project's `uploads` directory and served from `/uploads/<filename>`. Treat this
+local directory as development storage; use durable object storage for
+multi-instance production deployments. Uploaded files are publicly retrievable
+by URL, so do not use this endpoint for confidential documents.
+
+Authenticated users can also use `POST /upload/file` and `/upload/files` for
+JPEG, PNG, GIF, WEBP, PDF, and MP4 files. Images are limited to 5 MB, PDFs to
+20 MB, and MP4 videos to 100 MB per file. `POST /upload/avatar` stores an image
+and updates the signed-in user's `avatar_url`.
+
+WebSocket chat is available at `/ws/chat/{room}?token=<access-token>`. Send
+plain text to chat or JSON such as `{"type":"typing","is_typing":true}` for a
+typing indicator. Room messages are persisted; authenticated users can fetch
+the latest 50 from `GET /ws/rooms/{room}/history`. `GET /ws/online` lists
+currently connected users. Direct messages use
+`/ws/dm/{target_user_id}?token=<access-token>` and are delivered only while the
+recipient has an active WebSocket connection; they are not persisted.
+WebSocket connections with an `Origin` header are restricted to the exact
+origins in `ALLOWED_ORIGINS`; CORS middleware alone does not validate
+WebSocket origins. Command-line clients without an `Origin` header may connect
+with a valid access token.
+
+Apply the migration that adds chat history and avatar storage before using
+these features:
+
+```powershell
+python -m alembic upgrade head
+```
+
 ## Production deployment
 
 The production server files target Linux. Install the production dependencies,

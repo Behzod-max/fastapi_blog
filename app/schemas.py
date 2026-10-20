@@ -17,6 +17,7 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime
+    avatar_url: Optional[str] = None
 
     model_config = {
         "from_attributes": True
@@ -26,6 +27,18 @@ class UserResponse(BaseModel):
 class UserPasswordUpdate(BaseModel):
     old_password: str = Field(min_length=1)
     new_password: str = Field(min_length=1)
+
+
+class MessageResponse(BaseModel):
+    id: int
+    room: str
+    username: str
+    content: str
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }
 
 
 # ─── POST SCHEMAS ─────────────────────────────

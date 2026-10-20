@@ -4,6 +4,7 @@ from time import perf_counter
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 from . import database
 from .config import settings
 from .limiter import limiter
-from .routers import auth, posts, users, websocket
+from .routers import auth, posts, upload, users, websocket
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app.requests")
 
@@ -41,15 +42,23 @@ app.add_exception_handler(
     _rate_limit_exceeded_handler,
 )
 
+app.mount(
+    "/uploads",
+    StaticFiles(directory=upload.UPLOAD_DIR),
+    name="uploads",
+)
+
 # Asosiy API routerlari
 app.include_router(posts.router)
 app.include_router(users.router)
 app.include_router(auth.router)
+app.include_router(upload.router)
 app.include_router(websocket.router)
 # API v1 manzillari
 app.include_router(posts.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(upload.router, prefix="/api/v1")
 
 
 @app.middleware("http")

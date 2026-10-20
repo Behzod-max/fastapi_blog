@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000,http://localhost:5173"
     environment: str = "development"
     debug: bool = False
+    mail_username: str = ""
+    mail_password: str = ""
+    mail_from: str = ""
+    mail_port: int = 587
+    mail_server: str = "smtp.gmail.com"
 
     model_config = SettingsConfigDict(
         env_file=".env",
